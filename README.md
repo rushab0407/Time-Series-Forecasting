@@ -43,7 +43,6 @@ TBATS handles multiple seasonality and complex patterns.
 | TBATS  | Handles multiple seasonal patterns        | Ideal for complex signals   |
 
 ---
-
 ## 🧪 Evaluation Metrics
 
 Each model was evaluated using:
@@ -52,9 +51,11 @@ Each model was evaluated using:
 - **RMSE (Root Mean Squared Error)**
 - **MAPE (Mean Absolute Percentage Error)**
 
-> See full results and comparison in [`evaluation.R`](evaluation.R)
+📊 All model training, forecasting, and evaluation steps are fully included in [`project_code.qmd`](project_code.qmd), including:
+- MAE, RMSE, MAPE metrics
+- Forecast accuracy comparisons
+- Visual plots of forecast results
 
----
 
 ## 📂 Data
 
