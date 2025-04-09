@@ -54,7 +54,6 @@ Each model was evaluated using:
 📊 All model training, forecasting, and evaluation steps are fully included in [`project_code.qmd`](project_code.qmd), including:
 - MAE, RMSE, MAPE metrics
 - Forecast accuracy comparisons
-- Visual plots of forecast results
 
 
 ## 📂 Data
