@@ -6,12 +6,12 @@
 ### 1. Total Global Sales by Year
 Shows the trends in overall game sales over time.
 
-![Total Sales](docs/images/graph_page3_1.png)
+![Total Sales](graph_page3_1.png)
 
 ### 2. Genre Distribution by Platform
 Highlights how different game genres are distributed across gaming platforms.
 
-![Genre by Platform](docs/images/graph_page3_2.jpeg)
+![Genre by Platform](graph_page3_2.jpeg)
 
 ---
 
@@ -20,17 +20,17 @@ Highlights how different game genres are distributed across gaming platforms.
 ### 3. ARIMA Forecast
 ARIMA captures trends and seasonality to make predictions.
 
-![ARIMA Forecast](docs/images/graph_page4_1.png)
+![ARIMA Forecast](graph_page4_1.png)
 
 ### 4. ETS Forecast
 ETS (Error, Trend, Seasonality) model output.
 
-![ETS Forecast](docs/images/graph_page4_2.png)
+![ETS Forecast](graph_page4_2.png)
 
 ### 5. TBATS Forecast
 TBATS handles multiple seasonality and complex patterns.
 
-![TBATS Forecast](docs/images/graph_page4_3.png)
+![TBATS Forecast](graph_page4_3.png)
 
 ---
 
