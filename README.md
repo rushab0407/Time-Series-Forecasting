@@ -52,7 +52,7 @@ Each model was evaluated using:
 - **RMSE (Root Mean Squared Error)**
 - **MAPE (Mean Absolute Percentage Error)**
 
-> See full results and comparison in [`evaluation.R`](scripts/evaluation.R)
+> See full results and comparison in [`evaluation.R`](evaluation.R)
 
 ---
 
