@@ -1,0 +1,193 @@
+---
+title: "Project"
+format: pdf
+editor: visual
+---
+
+# Time Series Forecasting of Video Game Sales Using ARIMA, ETS, and TBATS Models
+
+```{r}
+
+#Loading Data
+data <- read.csv("/Users/rushabarram/Downloads/archive (16)/Video_Games_Sales_as_at_22_Dec_2016.csv")
+
+library(tidyverse)
+library(ggcorrplot)
+library(dplyr)
+library(ggplot2)
+library(forecast)
+library(tseries)
+library(zoo)
+library(lubridate)
+library(tidyr)
+
+
+# Stacked Bar Plot for Genre by Platform
+data %>% 
+  filter(!is.na(Genre), !is.na(Platform)) %>%
+  count(Platform, Genre) %>%
+  ggplot(aes(x = Platform, y = n, fill = Genre)) + 
+  geom_bar(stat = "identity") + 
+  labs(title = "Stacked Bar Plot of Genre by Platform", y="Sales") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Bar Plot for Top 10 Games by Global Sales
+topNgames <- data %>%
+  arrange(desc(Global_Sales)) %>%
+  head(10)
+
+topNgames %>% 
+  ggplot(aes(x = reorder(Name, Global_Sales), y = Global_Sales)) + 
+  geom_bar(stat = "identity", fill = "blue", color = "black") + 
+  labs(title = "Top 10 Games by Global Sales") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+data <- data %>%
+  mutate(Year_of_Release = as.numeric(as.character(Year_of_Release)))
+
+# Area Plot for Total Sales by Year
+data %>%
+  filter(!is.na(Year_of_Release)) %>%
+  group_by(Year_of_Release) %>%
+  summarise(Total_Sales = sum(Global_Sales, na.rm = TRUE)) %>%
+  ggplot(aes(x = Year_of_Release, y = Total_Sales)) +
+  geom_area(fill = "blue", alpha = 0.6) +
+  geom_line(color = "black") +
+  labs(title = "Total Global Sales by Year",
+       x = "Year of Release",
+       y = "Total Global Sales") +
+  theme_minimal()
+
+
+# Filtering non-numeric Year_of_Release entries and convertING to numeric
+data <- data %>%
+  filter(Year_of_Release != "N/A") %>%
+  mutate(Year = as.numeric(Year_of_Release)) %>%
+  filter(!is.na(Year_of_Release))
+
+# Summarizing the sales data based on year
+annualSales <- data %>%
+  group_by(Year_of_Release) %>%
+  summarize(Total_Sales = sum(Global_Sales, na.rm = TRUE))
+
+# checking the data is full for all the years
+allYears <- seq(min(annualSales$Year_of_Release), max(annualSales$Year_of_Release))
+annualSales <- annualSales %>%
+  complete(Year_of_Release = allYears, fill = list(Total_Sales = 0))
+
+# Replacing any zeros with a small positive value  inorder to avoid division by zero  error in MAPE calculation
+annualSales$Total_Sales <- ifelse(annualSales$Total_Sales == 0, 0.0001, annualSales$Total_Sales)
+
+# log transformation is applied here
+annualSales$Log_Total_Sales <- log(annualSales$Total_Sales)
+
+# Detecting and handling any outliers
+outliers <- boxplot.stats(annualSales$Log_Total_Sales)$out
+annualSales <- annualSales %>%
+  filter(!Log_Total_Sales %in% outliers)
+
+# Creating the time series object
+tsSales <- ts(annualSales$Log_Total_Sales, start = min(annualSales$Year_of_Release), frequency = 1)
+
+# stationarity is checked using Augmented Dickey-Fuller test
+adf.test(tsSales)
+difftsSales <- diff(tsSales, differences = 2)
+
+# Checking again for stationarity
+adf.test(difftsSales)
+
+# plots for Autocorrelation and Partial Autocorrelation 
+acf(difftsSales)
+pacf(difftsSales)
+
+# dividing the data into training and testing sets with 80/20 rule
+trainSize <- floor(0.8 * length(tsSales))
+traintsData <- ts(tsSales[1:trainSize], start = start(tsSales), frequency = frequency(tsSales))
+testtsData <- ts(tsSales[(trainSize + 1):length(tsSales)], start = end(traintsData) + 1, frequency = frequency(tsSales))
+
+# Building and comparing models
+
+#  ARIMA model
+fitArima <- auto.arima(traintsData, d = 2, stepwise = FALSE, approximation = FALSE)
+forecastedArima <- forecast(fitArima, h = length(testtsData))
+
+#  ETS model
+fitEts <- ets(traintsData, model = "ZZZ")
+forecastedEts <- forecast(fitEts, h = length(testtsData))
+
+#  TBATS model 
+fitTbats <- tbats(traintsData, use.box.cox = TRUE, use.trend = TRUE, use.damped.trend = TRUE)
+forecastedTbats <- forecast(fitTbats, h = length(testtsData))
+
+
+
+# Plot for forecasted sales vs actual sales for ARIMA model
+autoplot(forecastedArima) +
+  autolayer(testtsData, series = "Actual Sales", PI = FALSE) +
+  labs(title = "Forecasted vs Actual Sales (ARIMA)", x = "Year", y = "Total Sales (Log Scale)") +
+  theme_minimal()
+
+# Plot for forecasted sales vs actual sales for ETS model
+autoplot(forecastedEts) +
+  autolayer(testtsData, series = "Actual Sales", PI = FALSE) +
+  labs(title = "Forecasted vs Actual Sales (ETS)", x = "Year", y = "Total Sales (Log Scale)") +
+  theme_minimal()
+
+# Plot for forecasted sales vs actual sales for TBATS model
+autoplot(forecastedTbats) +
+  autolayer(testtsData, series = "Actual Sales", PI = FALSE) +
+  labs(title = "Forecasted vs Actual Sales (TBATS)", x = "Year", y = "Total Sales (Log Scale)") +
+  theme_minimal()
+
+
+# Evaluating ARIMA model
+maeArima <- mean(abs(forecastedArima$mean - testtsData))
+rmseArima <- sqrt(mean((forecastedArima$mean - testtsData)^2))
+mapeArima <- mean(abs((forecastedArima$mean - testtsData) / testtsData)) * 100
+
+# Evaluating ETS model
+maeEts <- mean(abs(forecastedEts$mean - testtsData))
+rmseEts <- sqrt(mean((forecastedEts$mean - testtsData)^2))
+mapeEts <- mean(abs((forecastedEts$mean - testtsData) / testtsData)) * 100
+
+# Evaluating TBATS model
+maeTbats <- mean(abs(forecastedTbats$mean - testtsData))
+rmseTbats <- sqrt(mean((forecastedTbats$mean - testtsData)^2))
+mapeTbats <- mean(abs((forecastedTbats$mean - testtsData) / testtsData)) * 100
+
+
+
+# Printing result metrics for ARIMA
+cat("ARIMA Model - Mean Absolute Error (MAE):", maeArima, "\n")
+cat("ARIMA Model - Root Mean Square Error (RMSE):", rmseArima, "\n")
+cat("ARIMA Model - Mean Absolute Percentage Error (MAPE):", mapeArima, "\n")
+
+# Printing result metrics for ETS
+cat("ETS Model - Mean Absolute Error (MAE):", maeEts, "\n")
+cat("ETS Model - Root Mean Square Error (RMSE):", rmseEts, "\n")
+cat("ETS Model - Mean Absolute Percentage Error (MAPE):", mapeEts, "\n")
+
+# Printing result metrics for TBATS
+cat("TBATS Model - Mean Absolute Error (MAE):", maeTbats, "\n")
+cat("TBATS Model - Root Mean Square Error (RMSE):", rmseTbats, "\n")
+cat("TBATS Model - Mean Absolute Percentage Error (MAPE):", mapeTbats, "\n")
+
+
+
+
+# Residual Analysis
+par(mfrow = c(2, 2))
+plot(residuals(fitArima), main = "ARIMA Residuals")
+acf(residuals(fitArima))
+pacf(residuals(fitArima))
+
+plot(residuals(fitEts), main = "ETS Residuals")
+acf(residuals(fitEts))
+pacf(residuals(fitEts))
+
+plot(residuals(fitTbats), main = "TBATS Residuals")
+acf(residuals(fitTbats))
+pacf(residuals(fitTbats))
+
+
+```
